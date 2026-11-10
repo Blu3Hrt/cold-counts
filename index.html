@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cold Counts · 2026 Election Snapshot</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: #111827;
+      --border: #1f2937;
+      --border-focus: #3b82f6;
+      --text: #f9fafb;
+      --muted: #9ca3af;
+      --dem: #3b82f6;
+      --gop: #ef4444;
+      --ind: #eab308;
+      --green: #10b981;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-width: 1440px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    /* Top Bar */
+    header {
+      height: 64px;
+      background: #0f172a;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      flex-shrink: 0;
+    }
+    .brand {
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 15px;
+    }
+    .brand span { color: var(--dem); }
+    .search-wrap {
+      flex: 1;
+      max-width: 360px;
+      margin: 0 24px;
+    }
+    .search-wrap input {
+      width: 100%;
+      background: #1e293b;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 14px;
+      outline: none;
+    }
+    .search-wrap input:focus { border-color: var(--border-focus); }
+    .filter-tabs {
+      display: flex;
+      gap: 6px;
+      background: #1e293b;
+      padding: 4px;
+      border-radius: 6px;
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 6px 14px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .tab-btn.active {
+      background: #334155;
+      color: #fff;
+    }
+    .header-meta {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .badge-live {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--green);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 700;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; }
+
+    /* Chamber Status Banner */
+    .chamber-banner {
+      background: #0d131f;
+      border-bottom: 1px solid var(--border);
+      padding: 8px 24px;
+      display: flex;
+      gap: 32px;
+      align-items: center;
+      font-size: 13px;
+    }
+    .bar-group { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .bar-name { display: block; font-size: 11px; letter-spacing: .04em; opacity: .72; }
+    .bar-label { min-width: 0; display: flex; justify-content: space-between; font-weight: 600; font-size: 12px; }
+    .bar-track {
+      height: 14px;
+      background: #1e293b;
+      border-radius: 7px;
+      overflow: hidden;
+      display: flex;
+    }
+    .bar-dem { background: var(--dem); transition: width 0.3s; }
+    .bar-gop { background: var(--gop); transition: width 0.3s; }
+    .bar-uncalled { background: #475569; transition: width 0.3s; }
+
+    /* Main Workspace */
+    .workspace {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* Left Rail */
+    .rail {
+      width: 340px;
+      background: #0f172a;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .rail-header {
+      padding: 12px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+    }
+    .race-list {
+      flex: 1;
+      overflow-y: auto;
+    }
+    .race-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: background 0.15s;
+    }
+    .race-item:hover { background: #1e293b; }
+    .race-item.active { background: #1e293b; border-left: 4px solid var(--border-focus); }
+    .race-item-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .status-pill {
+      font-size: 10px;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+      background: #334155;
+      color: var(--muted);
+    }
+    .status-pill.called { background: rgba(16, 185, 129, 0.2); color: var(--green); }
+    /* Outline, not fill: a concession is a statement by a candidate, not the source's call,
+       and it must not wear the same dress as CALLED. */
+    .status-pill.conceded { background: transparent; color: var(--muted);
+      border: 1px dashed var(--muted); }
+    .race-item { border-left: 4px solid #cbd5e1; }
+    .race-item.party-dem { border-left-color: #2563eb; }
+    .race-item.party-gop { border-left-color: #dc2626; }
+    .race-item.party-oth { border-left-color: #d97706; }
+    .race-item.party-none { border-left-color: #cbd5e1; }
+    .party-legend { display: flex; gap: 14px; align-items: center; font-size: 11px;
+      color: var(--muted); margin: 6px 0 2px; flex-wrap: wrap; }
+    .party-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px;
+      margin-right: 5px; vertical-align: -1px; }
+    .race-item-sub {
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+    }
+    /* the coverage-and-age line is longer than the rail, and wrapping it mid-phrase
+       made 'Leader: Not established' read as 'Leader: Not precincts not reported' */
+    .race-item-sub span:last-child { white-space: normal; line-height: 1.35; }
+
+    /* Center Pane */
+    .center-pane {
+      flex: 1;
+      background: var(--bg);
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+    }
+    .race-headline {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+    .race-title { font-size: 24px; font-weight: 800; }
+    .meta-tag { font-size: 13px; color: var(--muted); margin-top: 4px; }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .stat-box {
+      background: #1e293b;
+      padding: 14px;
+      border-radius: 6px;
+    }
+    .stat-label { font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+    .stat-val { font-size: 20px; font-weight: 800; margin-top: 4px; }
+    
+    .cand-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    .cand-table th { text-align: left; font-size: 12px; color: var(--muted); padding: 8px 12px; border-bottom: 1px solid var(--border); }
+    .cand-table td { padding: 12px; border-bottom: 1px solid var(--border); font-size: 14px; }
+    .party-chip {
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .party-chip.DEM { background: rgba(59, 130, 246, 0.2); color: var(--dem); }
+    .party-chip.GOP { background: rgba(239, 68, 68, 0.2); color: var(--gop); }
+    .party-chip.OTH { background: rgba(234, 179, 8, 0.2); color: var(--ind); }
+
+    /* Right Drawer */
+    .drawer {
+      width: 440px;
+      background: #0f172a;
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      gap: 16px;
+      overflow-y: auto;
+    }
+    .drawer-title { font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: space-between; }
+    .note-preview {
+      background: #1e293b;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px;
+      font-family: monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      line-height: 1.5;
+      color: #cbd5e1;
+      height: 220px;
+      overflow-y: auto;
+    }
+    .btn {
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+    .btn:hover { background: #1d4ed8; }
+    .btn-secondary { background: #334155; }
+    .btn-secondary:hover { background: #475569; }
+    .img-preview {
+      width: 100%;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      display: none;
+    }
+    .news-item {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .news-item a { color: #60a5fa; text-decoration: none; font-weight: 600; }
+    .news-item a:hover { text-decoration: underline; }
+    .news-meta { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    /* Keep all research and export controls reachable at smaller widths. */
+    body { min-width: 0; }
+    header { height: auto; min-height: 64px; flex-wrap: wrap; gap: 12px; padding: 12px 24px; }
+    .header-meta { flex-wrap: wrap; }
+    #refreshStatus { max-width: 420px; }
+    .center-pane { min-width: 0; }
+    .rail { flex-shrink: 0; }
+    .drawer { flex-shrink: 0; }
+    .card, .note-preview, .meta-tag { overflow-wrap: anywhere; }
+    @media (max-width: 1399px) {
+      body { height: auto; min-height: 100vh; overflow: auto; }
+      .workspace { display: grid; grid-template-columns: 280px minmax(0, 1fr); overflow: visible; }
+      .rail { width: auto; max-height: 75vh; }
+      .center-pane { overflow: visible; padding: 16px; }
+      .drawer { grid-column: 1 / -1; width: auto; overflow: visible; border-left: 0; border-top: 1px solid var(--border); }
+      .chamber-banner { flex-wrap: wrap; }
+      .bar-group { min-width: 240px; }
+    }
+    @media (max-width: 760px) {
+      header { padding: 12px; }
+      .search-wrap { margin: 0; max-width: none; flex-basis: 100%; }
+      .filter-tabs { flex-wrap: wrap; }
+      .workspace { display: flex; flex-direction: column; }
+      .rail { max-height: 40vh; flex-basis: auto; }
+      .stats-grid { grid-template-columns: 1fr; }
+      .race-headline { flex-wrap: wrap; gap: 12px; }
+      .cand-table th, .cand-table td { padding: 8px 4px; overflow-wrap: anywhere; }
+      .cand-table { table-layout: fixed; }
+    }
+  </style>
+<script>
+/* Static build: map the desk's API paths onto pre-rendered JSON files.
+   Targets are RELATIVE on purpose: Pages serves this under /<repo>/, where a root-relative
+   /api/x.json resolves to the domain root and 404s.
+
+   Query parameters are declared per endpoint. A parameter that is not declared is reported
+   instead of being dropped: split("?")[0] threw every parameter away in silence, so `category`
+   and `search` returned 200 with the whole board and looked like they worked. A control that
+   silently no-ops is worse than one that 404s, because only the 404 gets investigated. */
+(function () {
+  const realFetch = window.fetch.bind(window);
+  window.__STATIC_SITE__ = true;
+
+  // Two different questions, answered separately, because they come apart the moment someone
+  // builds a client against the JSON instead of the page:
+  //   file - the parameter changes which file is served (real server-side behaviour)
+  //   page - the parameter is accepted and honoured by the page from the full file
+  // `search` in the page is a matcher with a grammar, not a substring test. A client building
+  // against this JSON needs the rules before writing its own:
+  //   1. the query splits on whitespace and EVERY token must match (AND, not one phrase);
+  //   2. a full state name folds to its code, longest name first, so "Texas Senate" finds TX;
+  //   3. a numeric token is word-bounded and must equal seat_number, so "GA 3" is District 3
+  //      and never 13 or 23 - a bare "3" is every third district (39 rows), which is correct and
+  //      wider than it looks;
+  //   4. matched fields are title, race id, state and candidate names.
+  const PARAMS = {
+    races:   { file: [], page: ["category", "search"] },
+    history: { file: ["race_id"], page: [] },
+    chamber: { file: [], page: [] }, flips: { file: [], page: [] },
+    news:    { file: [], page: [] }, status: { file: [], page: [] }
+  };
+  window.__SNAPSHOT_IGNORED__ = [];
+
+  function hideNotice() {
+    if (typeof document === "undefined") return;
+    const box = document.getElementById("snapshotNotice");
+    if (box) box.remove();
+  }
+
+  // The page calls this when a visitor touches a control it does honour, so a notice about an
+  // unsupported request cannot linger over a working one.
+  window.__clearSnapshotNotice = hideNotice;
+
+  function report(endpoint, ignored) {
+    const names = ignored.join(", ");
+    console.warn("[snapshot] " + endpoint + " does not accept " + names
+                 + " here; the request returned the whole pre-rendered file.");
+    window.__SNAPSHOT_IGNORED__.push(endpoint + "?" + names);
+    if (typeof document === "undefined") return;
+    let box = document.getElementById("snapshotNotice");
+    if (!box) {
+      box = document.createElement("div");
+      box.id = "snapshotNotice";
+      box.style.cssText = "position:fixed;left:0;right:0;bottom:0;z-index:99;padding:8px 12px;"
+        + "background:#7c2d12;color:#fff;font:12px system-ui,sans-serif;text-align:center;";
+      document.body.appendChild(box);
+    }
+    // One sentence, naming the request rather than the control: the on-page Sort menu does work,
+    // and a notice that says otherwise accuses a working control of being broken.
+    box.textContent = "“" + names + "” as a URL parameter isn’t supported in this "
+      + "snapshot; the on-page controls still work.";
+  }
+
+  window.fetch = function (url, opts) {
+    if (typeof url === "string" && url.indexOf("/api/") === 0) {
+      if ((opts && opts.method && opts.method.toUpperCase() !== "GET")) {
+        return Promise.resolve(new Response(
+          JSON.stringify({error: "This is a read-only snapshot. Exports are not available here."}),
+          {status: 400, headers: {"Content-Type": "application/json"}}));
+      }
+      const rest = url.replace("/api/", "");
+      const endpoint = rest.split("?")[0];
+      const query = new URLSearchParams(url.split("?")[1] || "");
+      const spec = PARAMS[endpoint] || { file: [], page: [] };
+      const honoured = spec.file.concat(spec.page);
+      const ignored = [...query.keys()].filter((k) => honoured.indexOf(k) === -1);
+      // The notice clears as soon as a request carries nothing unsupported: a warning that
+      // outlives its cause becomes furniture and stops being read.
+      if (ignored.length) report(endpoint, ignored); else hideNotice();
+      let target;
+      if (endpoint === "history") {
+        target = "api/history/" + encodeURIComponent(query.get("race_id") || "") + ".json";
+      } else {
+        target = "api/" + endpoint + ".json";
+      }
+      return realFetch(target, opts);
+    }
+    return realFetch(url, opts);
+  };
+})();
+</script>
+<style>
+/* A static snapshot cannot freeze new artifacts, so the controls are removed rather than
+   left on screen to fail. */
+#exportBtn, #exportCalledText, #exportCalledCards { display: none !important; }
+</style>
+</head>
+<body>
+
+  <!-- Top Strip -->
+  <header>
+    <div class="brand">
+      <span>⚡</span> COLD COUNTS
+    </div>
+    <div class="search-wrap">
+      <input type="text" id="searchInput" placeholder="Search state, district or candidate (e.g. GA, GA 3, Vindman)...">
+    </div>
+    <div class="search-wrap" style="display:flex;gap:8px;">
+      <select id="statusFilter" title="Filter by source call status">
+        <option value="all">All races</option>
+        <option value="called">Called only</option>
+        <option value="too_early">Too early to call</option>
+        <option value="reporting">Reporting votes</option>
+        <option value="quiet">No new totals in 5m</option>
+        <option value="conceded">Conceded, not called</option>
+      </select>
+      <select id="sortKey" title="Sort the list">
+        <option value="source">Sort: source order</option>
+        <option value="pinned">Sort: pinned first</option>
+        <option value="called">Sort: called first</option>
+        <option value="conceded">Sort: conceded first</option>
+        <option value="votes_desc">Votes reported, high to low</option>
+        <option value="votes_asc">Votes reported, low to high</option>
+        <option value="place">State and district</option>
+        <option value="recent">Most recently reported</option>
+      </select>
+    </div>
+    <div class="filter-tabs">
+      <button class="tab-btn active" data-cat="all">All</button>
+      <button class="tab-btn" data-cat="senate">Senate (35)</button>
+      <button class="tab-btn" data-cat="house">House (435)</button>
+      <button class="tab-btn" data-cat="governor">Governor (36)</button>
+      <button class="tab-btn" data-cat="pinned">⭐ Pinned (<span id="pinCount">0</span>)</button>
+    </div>
+    <div class="header-meta">
+      <div>Source: <strong>AP via NYT Desk</strong></div>
+      <div id="pubStamp">Staged: Oct 27</div>
+      <div id="refreshStatus" role="status">Checking retrieval status…</div>
+      <div id="feedStatus" role="status" style="font-size:12px;margin-top:4px;color:var(--muted);">Feed age unknown.</div>
+    </div>
+  </header>
+
+  <!-- Chamber Standing Banner -->
+  <div class="chamber-banner">
+    <div class="bar-group">
+      <div class="bar-label">
+        <span class="bar-name">U.S. SENATE · 100 SEATS · 51 MAJORITY</span>
+        <span id="senateLabel">DEM 34 (Held) | GOP 31 (Held) | 35 Outstanding</span>
+      </div>
+      <div class="bar-track">
+        <div class="bar-dem" id="senDemBar" style="width: 34%;"></div>
+        <div class="bar-uncalled" id="senUncalledBar" style="width: 35%;"></div>
+        <div class="bar-gop" id="senGopBar" style="width: 31%;"></div>
+      </div>
+    </div>
+    <div class="bar-group">
+      <div class="bar-label">
+        <span class="bar-name">U.S. HOUSE · 435 SEATS · 218 MAJORITY</span>
+        <span id="houseLabel">0 Carryover • 435 Contested • No Calls Recorded</span>
+      </div>
+      <div class="bar-track">
+        <div class="bar-dem" id="houseDemBar" style="width: 0%;"></div>
+        <div class="bar-uncalled" id="houseUncalledBar" style="width: 100%;"></div>
+        <div class="bar-gop" id="houseGopBar" style="width: 0%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Workspace -->
+  <div class="workspace">
+    <!-- Left Rail -->
+    <div class="rail">
+      <div class="rail-header">
+        <span>RACES (<span id="raceListCount">0</span>)</span>
+        <span>STATUS</span>
+      </div>
+      <div class="party-legend" title="Colour follows the reported vote leader, not the call">
+        <span><i style="background:#2563eb"></i>DEM</span>
+        <span><i style="background:#dc2626"></i>GOP</span>
+        <span><i style="background:#d97706"></i>other</span>
+        <span><i style="background:#cbd5e1"></i>no leader</span>
+      </div>
+      <div class="race-list" id="raceList"></div>
+    </div>
+
+    <!-- Center Pane -->
+    <div class="center-pane">
+      <div class="card" id="detailCard">
+        <div class="race-headline">
+          <div>
+            <div class="race-title" id="detTitle">Select a race from the directory</div>
+            <div class="meta-tag" id="detMeta">Direct official reporting from The Associated Press</div>
+          </div>
+          <button class="btn btn-secondary" id="pinBtn" style="display:none;">⭐ Pin Race</button>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-label">Race Call Status</div>
+            <div class="stat-val" id="detCall">-</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Precincts Reporting</div>
+            <div class="stat-val" id="detPrecincts">-</div>
+          </div>
+          <div class="stat-box">
+            <!-- What is left and which way each unit leans: a description of the units still
+                 short of their precinct total, never a projection of how they will vote. -->
+            <div class="stat-label">Still Outstanding</div>
+            <div class="stat-val" id="detOutstanding">-</div>
+          </div>
+          <div class="stat-box" id="detReviewBox" style="display:none">
+            <!-- A total that fell since the previous observation. The number shown is still the
+                 publisher's; this says it moved, shows both values and both times, and clears
+                 itself when the value recovers. It never asserts the number is wrong. -->
+            <div class="stat-label">Total Under Review</div>
+            <div class="stat-val" id="detReview" style="font-size:13px;line-height:1.35;">-</div>
+          </div>
+          <div class="stat-box" id="detRemainingBox" style="display:none">
+            <!-- Model output, and labelled as such: the publisher's estimate of votes not yet
+                 counted. Never a ballot count, never counting progress, never on a card. -->
+            <div class="stat-label">Votes Outstanding</div>
+            <div class="stat-val" id="detRemaining">-</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Votes Reported</div>
+            <div class="stat-val" id="detVotes">-</div>
+          </div>
+        </div>
+
+        <table class="cand-table">
+          <thead>
+            <tr>
+              <th>CANDIDATE</th>
+              <th>PARTY</th>
+              <th>VOTES</th>
+              <th>SHARE</th>
+            </tr>
+          </thead>
+          <tbody id="detCands">
+            <tr><td colspan="4" style="color:var(--muted);text-align:center;">No race selected</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Historical Context Card -->
+      <div class="card" id="historyCard">
+        <div style="font-weight:700;font-size:15px;margin-bottom:8px;">Historical Baseline &amp; Forensic Context</div>
+        <div id="histBody" style="font-size:13px;color:var(--muted);line-height:1.6;">
+          Select a race to load who holds the seat, past final results and turnout.
+        </div>
+      </div>
+
+      <!-- Breaking Developments -->
+      <div class="card">
+        <div style="font-weight:700;font-size:15px;margin-bottom:8px;">Live Wire Developments (NPR & PBS Politics)</div>
+        <div id="newsList">Loading news feeds...</div>
+      </div>
+    </div>
+
+    <!-- Right Drawer: Host Briefing & Export -->
+    <div class="drawer">
+      <div class="drawer-title">
+        <span>HOST BRIEFING & EXPORT</span>
+        <span style="font-size:11px;color:var(--muted);" id="refBadge">REF: PENDING</span>
+      </div>
+      <div style="font-size:12px;color:var(--muted);">
+        One-click formatted snippets ready for Discord or private host DMs (JustMoniDuh).
+      </div>
+
+      <div class="note-preview" id="notePreview">Select a race to generate a briefing note.</div>
+
+      <button class="btn" id="copyNoteBtn">📋 Copy for Host DM / Discord</button>
+      <button class="btn btn-secondary" id="genCardBtn">🎨 Generate & Preview 1080p Card PNG</button>
+      <span id="flipBadge" style="display:none;margin-left:10px;font-size:13px;opacity:.85;"></span>
+      <button class="btn btn-secondary" id="calledListBtn">📄 Export all called races (text)</button>
+      <a class="btn btn-secondary" id="calledListLink" style="display:none;" target="_blank" rel="noopener">Open called-races brief</a>
+      <button class="btn btn-secondary" id="calledCardsBtn">🗂 Export called races as paged cards</button>
+      <a class="btn btn-secondary" id="calledCardsLink" style="display:none;" target="_blank" rel="noopener">Open page 1</a>
+
+      <img class="img-preview" id="cardImg" alt="Export Preview">
+      <a class="btn btn-secondary" id="downloadPngBtn" style="display:none;" download>💾 Save PNG Card</a>
+    </div>
+  </div>
+
+  <script>
+    let allRaces = [];
+    let pinnedIds = new Set(JSON.parse(localStorage.getItem("pinned_races") || "[]"));
+    let selectedRace = null;
+    let currentCategory = "all";
+    let raceRequest = 0;
+    async function loadStatus() {
+      const label = document.getElementById('refreshStatus');
+      const feedEl = document.getElementById('feedStatus');
+      try {
+        const response = await fetch('/api/status');
+        if (!response.ok) throw new Error('Status unavailable');
+        const data = await response.json();
+        const labels = {
+          not_started: 'Results retrieval has not started.',
+          refreshing: 'Retrieving results; showing stored snapshots.',
+          retrieved: 'Results retrieved. Source freshness is unverified.',
+          degraded: 'One or more refreshes failed; available stored snapshots remain visible. Freshness is unverified.'
+        };
+        label.innerText = labels[data.status] || 'Retrieval status unknown.';
+        // The feed's own clock, separate from the desk's fetch clock: a source that
+        // stopped moving must say so at the top, not only in each row's age.
+        const feed = data.feed || {};
+        if (feedEl) {
+          const stable = feed.state === 'live';
+          const color = feed.state === 'stale' ? '#e05555' : (stable ? 'var(--muted)' : '#e0b070');
+          feedEl.style.color = color;
+          const reporting = allRaces.filter(r => r.total_votes > 0);
+          const stalled = reporting.filter(r => (r.votes_changed_age_seconds || 0) >= 300).length;
+          // A snapshot has no live desk to measure and no observation history, so the two
+          // live-only sentences are replaced rather than printed with 'unknown' holes in them.
+          if (data.static) {
+            // Freshness is OBSERVED, not configured. `refresh` says what is supposed to happen;
+            // the age of built_at says what did. A token that expired would leave a page
+            // claiming a schedule it is not keeping, so the age is computed in the visitor's
+            // browser and spoken in words. The exact clock time stays beside it, because the
+            // relative age depends on their device clock and the timestamp does not.
+            const builtDate = data.built_at ? new Date(data.built_at) : null;
+            const built = builtDate ? builtDate.toLocaleString() : 'an unrecorded time';
+            const ageSeconds = builtDate && !isNaN(builtDate) ? Math.max(0, (Date.now() - builtDate.getTime()) / 1000) : null;
+            const ageWords = seconds => {
+              if (seconds == null) return '';
+              if (seconds < 90) return 'just now';
+              const m = Math.round(seconds / 60);
+              if (m < 60) return `${m} minute${m === 1 ? '' : 's'} ago`;
+              const h = Math.round(seconds / 3600);
+              if (h < 36) return `${h} hour${h === 1 ? '' : 's'} ago`;
+              const d = Math.round(seconds / 86400);
+              return `${d} day${d === 1 ? '' : 's'} ago`;
+            };
+            // Four cron cycles. Long enough that a slow run is not called a failure, short
+            // enough that a genuinely frozen board announces itself the same day.
+            const OVERDUE_SECONDS = 3600;
+            const age = ageWords(ageSeconds);
+            let sentence = `Last published snapshot built ${age || built}`;
+            if (builtDate && age && age !== 'just now') sentence = `Last published snapshot built ${age} (${built})`;
+            else sentence = `Last published snapshot built ${built}`;
+            if (data.refresh === 'scheduled') {
+              sentence += ageSeconds != null && ageSeconds > OVERDUE_SECONDS
+                ? '. Refresh is scheduled every 15 minutes, and no newer snapshot is available here.'
+                : '. Refresh is scheduled every 15 minutes.';
+            } else {
+              sentence += '. Not on a schedule: this snapshot will not update by itself.';
+            }
+            feedEl.innerText = sentence + ` Counts are as of the build, not your visit.`
+              + (feed.age ? ` Source stamp then: ${feed.age}.` : '');
+          } else {
+            feedEl.innerText = feed.age
+              ? `Source feed updated ${feed.age} (${feed.state}) · desk fetched ${data.desk_fetched_age || 'unknown'}`
+                + (reporting.length ? ` · ${stalled} of ${reporting.length} reporting races with no new totals in 5m` : '')
+              : 'Source feed has no publisher stamp for this snapshot.';
+          }
+        }
+      } catch (error) {
+        label.innerText = 'Desk connection failed. Displayed results have not been refreshed.';
+      }
+    }
+
+    async function loadStatusAndChamber() {
+      try {
+        const cRes = await fetch("/api/chamber");
+        const cData = await cRes.json();
+
+        // The Senate held-seat floor comes from a baseline manifest that is not
+        // shipped with every build. Say so instead of printing a zero that would
+        // read as a real held-seat count; House totals need no baseline and render.
+        const senateReady = cData.senate && cData.senate.available !== false;
+        if (!senateReady) {
+          document.getElementById("senateLabel").innerText =
+            (cData.senate && cData.senate.source_status) || 'Senate baseline unavailable in this build.';
+          for (const id of ["senDemBar", "senGopBar", "senUncalledBar"]) {
+            document.getElementById(id).style.width = "0%";
+          }
+        } else {
+          const sen = cData.senate;
+          document.getElementById("senateLabel").innerText = `DEM ${sen.dem_caucus} (Held) | GOP ${sen.gop} (Held) | ${sen.uncalled} Outstanding`;
+          document.getElementById("senDemBar").style.width = `${sen.dem_caucus}%`;
+          document.getElementById("senGopBar").style.width = `${sen.gop}%`;
+          document.getElementById("senUncalledBar").style.width = `${sen.uncalled}%`;
+        }
+
+        // House bar
+        const h = cData.house;
+        const hDemPct = (h.dem / 435 * 100);
+        const hGopPct = (h.gop / 435 * 100);
+        const hUncPct = (h.uncalled / 435 * 100);
+        document.getElementById("houseLabel").innerText = `DEM ${h.dem} | GOP ${h.gop} | ${h.uncalled} Outstanding`;
+        document.getElementById("houseDemBar").style.width = `${hDemPct}%`;
+        document.getElementById("houseGopBar").style.width = `${hGopPct}%`;
+        document.getElementById("houseUncalledBar").style.width = `${hUncPct}%`;
+
+        // News
+        const nRes = await fetch("/api/news");
+        const nData = await nRes.json();
+        const newsList = document.getElementById("newsList");
+        if (nData.news && nData.news.length > 0) {
+          newsList.innerHTML = nData.news.map(n => `
+            <div class="news-item">
+              <a href="${n.link}" target="_blank">${n.title}</a>
+              <div class="news-meta">${n.source} • ${n.published}</div>
+            </div>
+          `).join("");
+        } else {
+          newsList.innerHTML = "<div style='color:var(--muted);font-size:12px;'>No active wire developments.</div>";
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function loadRaces() {
+      const request = ++raceRequest;
+      try {
+      const q = document.getElementById("searchInput").value;
+      const url = `/api/races?category=${currentCategory === "pinned" ? "all" : currentCategory}&search=${encodeURIComponent(q)}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Race retrieval failed");
+      const data = await res.json();
+      if (request !== raceRequest) return;
+      
+      let filtered = data.races || [];
+      // The published snapshot serves one pre-rendered api/races.json and cannot filter on the
+      // server, so the same narrowing is repeated here from the values on the page. On the live
+      // desk these are no-ops on rows the server already narrowed.
+      const cat = currentCategory === "pinned" ? "all" : currentCategory;
+      if (cat && cat !== "all") {
+        filtered = filtered.filter(r => r.category === cat);
+      }
+      // Rows carry a state code, so "Texas Senate" found nothing while "TX Senate" worked. The
+      // names are spelled out here because the board never needs the long form for anything else.
+      const STATE_NAMES = {alabama:"AL",alaska:"AK",arizona:"AZ",arkansas:"AR",california:"CA",
+        colorado:"CO",connecticut:"CT",delaware:"DE","district of columbia":"DC",florida:"FL",
+        georgia:"GA",hawaii:"HI",idaho:"ID",illinois:"IL",indiana:"IN",iowa:"IA",kansas:"KS",
+        kentucky:"KY",louisiana:"LA",maine:"ME",maryland:"MD",massachusetts:"MA",michigan:"MI",
+        minnesota:"MN",mississippi:"MS",missouri:"MO",montana:"MT",nebraska:"NE",nevada:"NV",
+        "new hampshire":"NH","new jersey":"NJ","new mexico":"NM","new york":"NY",
+        "north carolina":"NC","north dakota":"ND",ohio:"OH",oklahoma:"OK",oregon:"OR",
+        pennsylvania:"PA","rhode island":"RI","south carolina":"SC","south dakota":"SD",
+        tennessee:"TN",texas:"TX",utah:"UT",vermont:"VT",virginia:"VA",washington:"WA",
+        "west virginia":"WV",wisconsin:"WI",wyoming:"WY"};
+      if (typeof window !== "undefined") window.__STATE_NAMES = STATE_NAMES;
+      const ql = q.trim().toLowerCase();
+      if (ql) {
+        // Every token has to land somewhere, which is how people actually type a race:
+        // "GA 3" is a state and a district, not one contiguous phrase. A single-token query keeps
+        // the older behaviour, with two refinements:
+        //   - a two-letter token is a state code, so "ga" does not return Garcia and Morgan;
+        //   - a numeric token must equal the seat number or stand alone in the title, so "3" does
+        //     not match District 13 or 23.
+        // A state's full name is two tokens in most cases, so fold the longest name that the query
+        // starts with back into one code before tokenising.
+        let qn = ql;
+        for (const name of Object.keys(STATE_NAMES)) {
+          if (qn === name || qn.startsWith(name + " ")) {
+            qn = STATE_NAMES[name].toLowerCase() + qn.slice(name.length);
+            break;
+          }
+        }
+        const tokens = qn.split(/\s+/).filter(Boolean);
+        const word = (tok) => new RegExp("(^|[^a-z0-9])" + tok.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "([^a-z0-9]|$)");
+        const matchesToken = (r, tok) => {
+          const state = (r.state || "").toLowerCase();
+          const title = (r.title || "").toLowerCase();
+          const rid = (r.race_id || "").toLowerCase();
+          const names = (r.candidates || []).map(c => c.name || "").join(" ").toLowerCase();
+          if (/^\d+$/.test(tok)) {
+            return String(r.seat_number || "") === tok || word(tok).test(title) || word(tok).test(rid);
+          }
+          if (/^[a-z]{2}$/.test(tok)) {
+            return state === tok || word(tok).test(title) || word(tok).test(names);
+          }
+          return title.includes(tok) || rid.includes(tok) || names.includes(tok);
+        };
+        filtered = filtered.filter(r => tokens.every(tok => matchesToken(r, tok)));
+      }
+      if (currentCategory === "pinned") {
+        filtered = filtered.filter(r => pinnedIds.has(r.race_id));
+      }
+      allRaces = filtered;
+      renderRaceList();
+      if (selectedRace && allRaces.some(r => r.race_id === selectedRace.race_id)) {
+        selectRace(selectedRace.race_id, false);
+      } else if (selectedRace && !allRaces.length) {
+        // With nothing left in the rail, a detail panel still showing the last race contradicts the
+        // list in the loudest possible way: "No races match" beside a full race card.
+        document.getElementById("detTitle").innerText = "No race selected";
+        const meta = document.getElementById("detMeta");
+        if (meta) meta.innerText = "";
+      }
+      } catch (error) {
+        document.getElementById('refreshStatus').innerText = 'Race refresh failed. Keeping displayed results.';
+      }
+    }
+
+    function visibleRaces() {
+      const status = document.getElementById("statusFilter").value;
+      const sortKey = document.getElementById("sortKey").value;
+      const quietCutoff = 5 * 60;
+
+      let rows = allRaces.filter(r => {
+        if (status === "all") return true;
+        if (status === "called") return r.call_status === "called";
+        if (status === "too_early") return r.call_status === "too_early";
+        if (status === "reporting") return (r.total_votes || 0) > 0;
+        if (status === "quiet") return (r.total_votes || 0) > 0
+          && (r.votes_changed_age_seconds || 0) >= quietCutoff;
+        // A concession is a candidate's statement, so it is not the same filter as a call:
+        // this one shows the races the source has NOT called where someone has conceded.
+        if (status === "conceded") return !!r.concession && r.call_status !== "called";
+        return true;
+      });
+
+      // Sorting is display order only: it never decides a leader, a call, or a winner.
+      const place = r => `${r.state || ""} ${String(r.seat_number || "").padStart(4, "0")}`;
+      // Grouping sorts keep source order inside each group, so nothing else moves:
+      // a pinned race rises, a called race rises, and the rest stay where they were.
+      const orders = {
+        source: null,
+        pinned: (a, b) => Number(pinnedIds.has(b.race_id)) - Number(pinnedIds.has(a.race_id)),
+        called: (a, b) => Number(b.call_status === "called") - Number(a.call_status === "called"),
+        conceded: (a, b) => Number(!!b.concession) - Number(!!a.concession),
+        votes_desc: (a, b) => (b.total_votes || 0) - (a.total_votes || 0),
+        votes_asc: (a, b) => (a.total_votes || 0) - (b.total_votes || 0),
+        place: (a, b) => place(a).localeCompare(place(b)),
+        recent: (a, b) => (a.votes_changed_age_seconds ?? 1e9) - (b.votes_changed_age_seconds ?? 1e9),
+      };
+      if (orders[sortKey]) rows = rows.slice().sort(orders[sortKey]);
+      return rows;
+    }
+
+    function renderRaceList() {
+      const listEl = document.getElementById("raceList");
+      const rows = visibleRaces();
+      const filtered = rows.length !== allRaces.length;
+      document.getElementById("raceListCount").innerText =
+        filtered ? `${rows.length} of ${allRaces.length}` : allRaces.length;
+      // The badge answers "how many pins do I have", and when a filter hides some of
+      // them it says so: '1 of 3' is honest, a bare '3' beside one star is not.
+      const pinnedVisible = rows.filter(r => pinnedIds.has(r.race_id)).length;
+      const pinnedTotal = pinnedIds.size;
+      document.getElementById("pinCount").innerText =
+        pinnedTotal === pinnedVisible ? pinnedTotal : `${pinnedVisible} of ${pinnedTotal}`;
+
+      // A search that matches nothing used to leave a blank rail with no explanation, which reads
+      // as a broken search rather than an empty result.
+      if (!rows.length) {
+        const q = document.getElementById("searchInput").value.trim();
+        listEl.innerHTML =
+          `<div style="padding:18px;color:var(--muted);font-size:12px;line-height:1.5;">`
+          + (q ? `No races match “${q.replace(/[<>&]/g, "")}”.`
+               : "No races in this view.")
+          + `</div>`;
+        return;
+      }
+      listEl.innerHTML = rows.map(r => {
+        const isPinned = pinnedIds.has(r.race_id);
+        const isSel = selectedRace && selectedRace.race_id === r.race_id;
+        const leader = r.total_votes > 0 && r.candidates.length > 1 && r.candidates[0].votes > r.candidates[1].votes ? r.candidates[0].name : "Not established";
+        const reported = r.precincts_reporting || 0;
+        const total = r.precincts_total || 0;
+        // an empty precinct field is not a zero: say the source did not send it
+        const frac = reported > 0 ? `${reported}/${total}` : (total > 0 ? 'precincts not reported' : 'no unit data');
+        // two different facts: when the source stamped this race, and when our count
+        // actually moved. IN-05 held one number for 24 minutes while stamps refreshed.
+        // Says what the desk observed, not what the county is doing. "Count unchanged"
+        // invites a listener to hear "they stopped counting", which nobody measured.
+        const countAge = r.no_new_totals_floor
+          ? `no new totals ${r.no_new_totals_floor}`
+          : (r.votes_changed_age
+              ? `no new totals ${r.votes_changed_age}`
+              : 'no totals yet');
+        const stamp = r.publisher_age ? `stamp ${r.publisher_age}` : 'no stamp';
+        // Left edge colour follows the vote leader's party, never the call. A race with
+        // no established leader stays grey, because colouring it would claim a leader the
+        // desk just said it could not name.
+        const partySlug = leader === "Not established" || !r.leader_party ? "none"
+          : (r.leader_party === "DEM" ? "dem" : r.leader_party === "GOP" ? "gop" : "oth");
+        return `
+          <div class="race-item party-${partySlug} ${isSel ? 'active' : ''}"
+               title="Left edge: party of the reported vote leader${partySlug === 'none' ? ' (none established)' : ''}"
+               onclick="selectRace('${r.race_id}')">
+            <div class="race-item-top">
+              <span>${isPinned ? '⭐ ' : ''}${r.title}</span>
+              <span class="status-pill ${r.call_status === 'called' ? 'called' : ''}">${r.call_status}</span>
+              ${r.concession ? `<span class="status-pill conceded" title="${`${r.concession.by}${r.concession.party ? ` (${r.concession.party})` : ''} conceded - ${r.concession.source || 'source not recorded'}`.replace(/"/g, '&quot;')}">CONCEDED</span>` : ''}
+            </div>
+            <div class="race-item-sub">
+              <span>Leader: ${leader}${leader !== "Not established" && r.leader_party ? ` (${r.leader_party})` : ''}</span>
+              ${r.concession ? `<span>Conceded: ${r.concession.by}${r.concession.party ? ` (${r.concession.party})` : ''}${r.concession.source ? ` - ${r.concession.source}` : ''}</span>` : ''}
+              <span title="precincts reporting · count age · source stamp">${frac}${r.static ? "" : " · " + countAge} · ${stamp}</span>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function selectRace(raceId, createExport = true) {
+      selectedRace = allRaces.find(r => r.race_id === raceId);
+      if (!selectedRace) return;
+      renderRaceList();
+
+      document.getElementById("detTitle").innerText = selectedRace.title;
+      const metaEl = document.getElementById("detMeta");
+      metaEl.innerText =
+        `Office: ${selectedRace.office} | ID: ${selectedRace.race_id} | `
+        + `source stamp ${selectedRace.publisher_age || 'unknown'} | `
+        // A snapshot is not fetching anything, so it reports the build's fetch time rather than
+        // an age that keeps counting while nobody is polling.
+        + (selectedRace.static
+            ? 'fetched at build'  // the raw stamp lives in the tooltip, not in a raw ISO string
+            : `desk fetched ${selectedRace.desk_fetched_age || 'unknown'}`)
+        + (selectedRace.no_new_totals_floor
+            ? ` | no new totals for more than ${selectedRace.no_new_totals_floor.slice(1)}`
+            : (selectedRace.votes_changed_age ? ` | no new totals in ${selectedRace.votes_changed_age}` : ''));
+      // Timestamps in full live in the tooltip: on screen the ages are what a host reads.
+      metaEl.title = `source updated ${selectedRace.publisher_updated || 'no stamp'}; `
+                   + `desk fetched ${selectedRace.desk_fetched || 'no stamp'}; `
+                   + `last new total ${selectedRace.votes_changed_at || 'not observed'}`;
+      document.getElementById("detCall").innerText = selectedRace.call_status.toUpperCase();
+      // Shape-only review mark: beside the total, never binding it. Absent on almost every race.
+      const review = selectedRace.tally_review;
+      const reviewBox = document.getElementById("detReviewBox");
+      reviewBox.style.display = review ? "" : "none";
+      if (review) {
+        const when = (review.now_at || "").slice(0, 16).replace("T", " ");
+        document.getElementById("detReview").innerText =
+          `since ${when}Z · prior ${review.prior_total.toLocaleString()} · now ${review.now_total.toLocaleString()}`;
+        reviewBox.title = `${review.note}. Clears when ${review.clears_when}. `
+          + "The displayed total is still the publisher's own.";
+      }
+      // Coverage, not a modelled estimate: the source either reports a fraction or not.
+      const repCount = selectedRace.precincts_reporting || 0;
+      const repTotal = selectedRace.precincts_total || 0;
+      document.getElementById("detPrecincts").innerText =
+        repCount > 0 ? `${repCount}/${repTotal}` : 'not reported';
+      document.getElementById("detVotes").innerText = (selectedRace.total_votes || 0).toLocaleString();
+      // The source reports no vote total for precincts it has not counted. This box says
+      // exactly that, and gives the precinct count that IS reported. No extrapolation: votes
+      // per precinct inside one race span eight to nine times, so a single number here would
+      // be precision the data does not carry.
+      const rem = selectedRace.remaining_votes;
+      document.getElementById("detRemainingBox").style.display = rem ? "" : "none";
+      if (rem) {
+        document.getElementById("detRemaining").innerText = rem.note || "not reported by source";
+        document.getElementById("detRemainingBox").title =
+          `${rem.precincts_left} precinct${rem.precincts_left === 1 ? "" : "s"} outstanding; `
+          + "the source publishes no vote total for them. The desk does not extrapolate one.";
+      }
+      // Units still short of their precinct total, and each one's current lean. Named as
+      // units, not counties, because a unit label is what the source gives us.
+      const out = selectedRace.outstanding;
+      const outEl = document.getElementById("detOutstanding");
+      // A unit list that does not add up to the publisher's district fraction is not an
+      // inventory of the outstanding precincts. In that case say so and print no units:
+      // a qualified list is still a list, and this line sits beside the number it would
+      // appear to explain.
+      outEl.innerText = !out
+        ? "none reported"
+        : !out.reconciled
+          ? `${out.district_outstanding} outstanding per the district total (${out.district_precincts}) · `
+            + `unit detail ${out.unit_precincts} lags, so they cannot be located`
+          : `${out.precincts} in ${out.units} unit${out.units === 1 ? "" : "s"} · `
+            + `${out.lean_dem} lean DEM · ${out.lean_gop} lean GOP`
+            + ` (${out.detail.map(d => `${d.unit} ${d.precincts_left}`).join(", ")})`;
+
+      const pinBtn = document.getElementById("pinBtn");
+      pinBtn.style.display = "block";
+      pinBtn.innerText = pinnedIds.has(selectedRace.race_id) ? "★ Unpin Race" : "⭐ Pin Race";
+
+      const cBody = document.getElementById("detCands");
+      const tot = selectedRace.total_votes || 0;
+      cBody.innerHTML = selectedRace.candidates.map(c => {
+        const share = tot > 0 ? `${(c.votes / tot * 100).toFixed(1)}%` : "Not available";
+        return `
+          <tr>
+            <td><strong>${c.name}</strong> </td>
+            <td><span class="party-chip ${c.party}">${c.party}</span></td>
+            <td>${c.votes.toLocaleString()}</td>
+            <td><strong>${share}</strong></td>
+          </tr>
+        `;
+      }).join("");
+
+      // Historical context: who holds the seat now, past finals, turnout.
+      loadHistory(selectedRace.race_id);
+
+      // Trigger Host Note generation
+      if (createExport) generateExport();
+    }
+
+    let historyRequest = 0;
+    function partyLetter(p) {
+      const s = (p || '').toLowerCase();
+      if (s.startsWith('dem')) return 'D';
+      if (s.startsWith('rep')) return 'R';
+      return 'O';
+    }
+
+    async function loadHistory(raceId) {
+      const request = ++historyRequest;
+      const body = document.getElementById('histBody');
+      body.innerHTML = 'Loading historical baseline…';
+      try {
+        const res = await fetch('/api/history?race_id=' + encodeURIComponent(raceId));
+        const data = await res.json();
+        if (request !== historyRequest) return;
+        body.innerHTML = renderHistory(data);
+      } catch (err) {
+        if (request === historyRequest) body.innerHTML = 'history unavailable';
+      }
+    }
+
+    function renderHistory(data) {
+      if (!data || !data.available) {
+        const why = data && data.reason ? data.reason : 'history unavailable';
+        return '<span style="color:var(--muted);">history unavailable</span>'
+             + '<div style="font-size:11px;color:var(--muted);margin-top:4px;">' + why + '</div>';
+      }
+      const out = [];
+
+      // Scheduled closing first: a partial count means something different before it.
+      if (data.polls) {
+        const p = data.polls;
+        out.push(`<div style="margin-bottom:6px;color:var(--ink);font-weight:600;">`
+               + `Polls: ${p.headline || 'scheduled ' + p.ct + ' CT'}</div>`);
+        if (p.note) {
+          out.push(`<div style="font-size:11px;color:#e0b070;">${p.note}</div>`);
+        }
+      }
+
+      // Present tense first, dated, and never called "incumbent".
+      if (data.seat_holder) {
+        const h = data.seat_holder;
+        out.push(`<div style="color:var(--ink);font-weight:600;">Seat holder as of ${h.checked_at}: `
+               + `${h.name} (${partyLetter(h.party)})`
+               + `${h.member_since ? ' · since ' + h.member_since : ''}</div>`);
+      } else {
+        out.push('<div>Seat holder as of today: <em>unavailable</em></div>');
+      }
+
+      // Past tense, below a rule, with the year on the same line as the number.
+      out.push('<div style="border-top:1px solid rgba(255,255,255,0.08);margin:8px 0 6px;"></div>');
+      out.push('<div style="font-size:11px;letter-spacing:0.06em;color:var(--muted);">PAST RESULTS · FINAL · NOT THIS RACE</div>');
+      if (data.map_notice) {
+        out.push(`<div style="margin-top:4px;font-size:12px;color:#e0b070;">${data.map_notice}</div>`);
+      }
+      if (data.past_results && data.past_results.length) {
+        for (const r of data.past_results) {
+          out.push(`<div style="margin-top:4px;">${r.year} GENERAL · `
+                 + `<strong>${r.margin_label}</strong> · D ${r.dem_share}% / R ${r.rep_share}% `
+                 + `of all votes cast`
+                 + `<span style="font-size:11px;color:var(--muted);"> · source: ${r.credit}</span></div>`);
+        }
+      } else if (data.office === 'US HOUSE') {
+        out.push('<div style="margin-top:4px;">no result under these lines</div>');
+      } else {
+        out.push('<div style="margin-top:4px;">history unavailable</div>');
+      }
+      // Never withhold last time's answer; show it, labelled as a different map.
+      if (data.previous_lines_results && data.previous_lines_results.length) {
+        out.push('<div style="margin-top:8px;padding-top:6px;border-top:1px dashed rgba(255,255,255,0.12);font-size:11px;letter-spacing:0.06em;color:var(--muted);">UNDER THE PREVIOUS LINES</div>');
+        for (const r of data.previous_lines_results) {
+          out.push(`<div style="margin-top:3px;">${r.year} · ${r.margin_label} · `
+                 + `D ${r.dem_share}% / R ${r.rep_share}%`
+                 + `<div style="font-size:11px;color:var(--muted);">${r.context_label || 'different map'}</div></div>`);
+        }
+      }
+
+      // Unlicensed history may inform the host, never an exported card.
+      if (data.internal_only && data.internal_only.length) {
+        out.push('<div style="margin-top:8px;padding:6px;border:1px solid rgba(220,80,80,0.35);border-radius:4px;">'
+               + '<div style="font-size:11px;letter-spacing:0.06em;color:#e08a8a;">INTERNAL DESK USE ONLY · UNLICENSED SOURCE · NOT FOR EXPORT</div>');
+        for (const r of data.internal_only) {
+          out.push(`<div style="margin-top:4px;">${r.year} GENERAL · ${r.margin_label} · D ${r.dem_share}% / R ${r.rep_share}%</div>`);
+        }
+        out.push('</div>');
+      }
+
+      if (data.turnout && data.turnout.vep_turnout_rate !== null && data.turnout.vep_turnout_rate !== undefined) {
+        const t = data.turnout;
+        out.push(`<div style="margin-top:8px;">Turnout ${t.year}: <strong>${t.vep_turnout_rate}%</strong> of the `
+               + `voting-eligible population turned out (ballots counted)`
+               + `<span style="font-size:11px;color:var(--muted);"> · source: ${t.credit}</span></div>`);
+      }
+
+      if (data.source_comparison) {
+        const c = data.source_comparison;
+        out.push(`<div style="margin-top:6px;font-size:12px;">Source-supplied comparison (${c.label}): `
+               + `D ${c.dem_pct}% / R ${c.rep_pct}%</div>`);
+      }
+      return out.join('');
+    }
+
+    let exportRequest = 0;
+    async function generateExport() {
+      if (!selectedRace) return;
+      const request = ++exportRequest;
+      const raceId = selectedRace.race_id;
+      const copy = document.getElementById('copyNoteBtn');
+      const img = document.getElementById('cardImg');
+      const dlBtn = document.getElementById('downloadPngBtn');
+      copy.disabled = true;
+      img.style.display = 'none';
+      dlBtn.style.display = 'none';
+      document.getElementById('notePreview').innerText = 'Preparing snapshot…';
+      document.getElementById('refBadge').innerText = 'REF: PENDING';
+      try {
+        const res = await fetch('/api/export/note', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({race_id: raceId})
+        });
+        if (!res.ok) throw new Error('Export unavailable');
+        const data = await res.json();
+        if (request !== exportRequest || selectedRace?.race_id !== raceId) return;
+        if (typeof data.note !== 'string' || !data.png_url || !data.ref_id) throw new Error('Incomplete export');
+        document.getElementById('notePreview').innerText = data.note;
+        document.getElementById('refBadge').innerText = `REF: ${data.ref_id}`;
+        img.src = data.png_url;
+        img.style.display = 'block';
+        dlBtn.href = data.png_url;
+        dlBtn.style.display = 'inline-flex';
+        copy.disabled = false;
+      } catch (error) {
+        if (request !== exportRequest) return;
+        document.getElementById('notePreview').innerText = 'Export failed. Retry generation; no new briefing is ready.';
+      }
+    }
+    document.getElementById('genCardBtn').onclick = generateExport;
+
+    // Seat flips against the dated seat-holder snapshot, refreshed with the board.
+    async function loadFlips() {
+      const badge = document.getElementById('flipBadge');
+      try {
+        const res = await fetch('/api/flips');
+        const data = await res.json();
+        if (data.unavailable) { badge.innerText = 'Seat flips unavailable: ' + data.unavailable; badge.style.display = 'inline'; return; }
+        const notes = data.flips.filter(f => f.map_caveat).length;
+        // chamber split and state concentration come from the same rows as the count, so
+        // the badge cannot drift from the brief.
+        const ch = data.by_chamber || {};
+        const chText = [['House', ch.House], ['Senate', ch.Senate]]
+          .filter(([, n]) => n).map(([k, n]) => `${n} ${k}`).join(' · ');
+        const st = Object.entries(data.by_state || {}).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+          .map(([k, n]) => `${k} ${n}`).join(', ');
+        badge.innerText = `Seat flips: ${data.count}` + (chText ? ` (${chText})` : '')
+          + (st ? ` · ${st}` : '')
+          // "map note", not "across a redrawn map": the rows no longer claim a district-level
+          // change, and the badge is the element most likely to be quoted out loud.
+          + (notes ? ` · ${notes} with a map note` : '')
+          + (data.unmatched.length ? ` · ${data.unmatched.length} not comparable` : '');
+        badge.style.display = 'inline';
+      } catch (e) { badge.style.display = 'none'; }
+    }
+    loadFlips();
+
+    // Every call the source has made, as one text briefing. The server selects the rows:
+    // the page sends a filter, never a list of ids.
+    // Paged cards: three races per card, one shared ref with a pNofM suffix. At sixty-odd
+    // calls this is a lookup artifact, not an on-air read — the text brief is beside it.
+    document.getElementById('calledCardsBtn').onclick = async () => {
+      const btn = document.getElementById('calledCardsBtn');
+      const link = document.getElementById('calledCardsLink');
+      const box = document.getElementById('notePreview');
+      btn.disabled = true;
+      box.innerText = 'Rendering called-race pages… this takes a moment.';
+      try {
+        const res = await fetch('/api/export/note', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filter: 'called', formats: ['cards'] })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Export unavailable');
+        document.getElementById('refBadge').innerText = `REF: ${data.cards_ref} · ${data.count} calls · ${data.pages} pages`;
+        box.innerText = data.cards.map(c => c.file + String.fromCharCode(10) + location.origin + c.url).join(String.fromCharCode(10, 10));
+        link.href = data.cards[0].url;
+        link.style.display = 'inline-flex';
+      } catch (error) {
+        box.innerText = 'Paged export failed: ' + error.message;
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
+    document.getElementById('calledListBtn').onclick = async () => {
+      const btn = document.getElementById('calledListBtn');
+      const link = document.getElementById('calledListLink');
+      const box = document.getElementById('notePreview');
+      btn.disabled = true;
+      box.innerText = 'Freezing the called-races briefing…';
+      try {
+        const res = await fetch('/api/export/note', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filter: 'called', formats: ['text'] })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Export unavailable');
+        document.getElementById('refBadge').innerText = `REF: ${data.ref} · ${data.count} calls`;
+        box.innerText = data.text;
+        link.href = data.artifacts.text;
+        link.style.display = 'inline-flex';
+      } catch (error) {
+        box.innerText = 'Called-races export failed: ' + error.message;
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
+    // Pinning
+    document.getElementById("pinBtn").onclick = () => {
+      if (!selectedRace) return;
+      if (pinnedIds.has(selectedRace.race_id)) {
+        pinnedIds.delete(selectedRace.race_id);
+      } else {
+        pinnedIds.add(selectedRace.race_id);
+      }
+      localStorage.setItem("pinned_races", JSON.stringify([...pinnedIds]));
+      selectRace(selectedRace.race_id);
+    };
+
+    // Copying
+    document.getElementById("copyNoteBtn").onclick = () => {
+      const text = document.getElementById("notePreview").innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById("copyNoteBtn");
+        const orig = btn.innerText;
+        btn.innerText = "✅ COPIED TO CLIPBOARD!";
+        setTimeout(() => { btn.innerText = orig; }, 2000);
+      });
+    };
+
+    // Filter tabs
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        currentCategory = btn.dataset.cat;
+        if (window.__syncUrl) window.__syncUrl();
+        loadRaces();
+      };
+    });
+
+    document.getElementById("searchInput").oninput = () => {
+      if (window.__clearSnapshotNotice) window.__clearSnapshotNotice();
+      if (window.__syncUrl) window.__syncUrl();
+      loadRaces();
+    };
+    // Sort and status are honoured by the page itself, so touching either one answers the question
+    // a lingering "this control does not apply" notice was raising.
+    document.getElementById("statusFilter").onchange = () => {
+      if (window.__clearSnapshotNotice) window.__clearSnapshotNotice();
+      renderRaceList();
+    };
+    document.getElementById("sortKey").onchange = () => {
+      if (window.__clearSnapshotNotice) window.__clearSnapshotNotice();
+      renderRaceList();
+    };
+
+    // The address bar is the one control a visitor uses by pasting, not clicking. Without this,
+    // a shared ?category=house&search=GA link loaded the full board and looked like a filter that
+    // silently failed. Read it once at startup, and write it back as the visitor narrows, so a
+    // filtered view can be sent to someone and arrive as the view that was sent.
+    function syncUrl() {
+      const params = new URLSearchParams(location.search);
+      if (currentCategory && currentCategory !== "all") params.set("category", currentCategory);
+      else params.delete("category");
+      const q = document.getElementById("searchInput").value.trim();
+      if (q) params.set("search", q); else params.delete("search");
+      const qs = params.toString();
+      history.replaceState(null, "", location.pathname + (qs ? "?" + qs : "") + location.hash);
+    }
+    // Guarded so the frontend harness (which evaluates this script without a DOM window or
+    // location) can still load the page's logic.
+    if (typeof window !== "undefined") window.__syncUrl = syncUrl;
+
+    (function readUrl() {
+      if (typeof location === "undefined") return;
+      const params = new URLSearchParams(location.search);
+      const wantedCategory = params.get("category");
+      const wantedSearch = params.get("search") || "";
+      if (wantedSearch) document.getElementById("searchInput").value = wantedSearch;
+      if (wantedCategory) {
+        const tab = [...document.querySelectorAll(".tab-btn")]
+          .find(b => b.dataset.cat === wantedCategory);
+        if (tab) {
+          document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+          tab.classList.add("active");
+          currentCategory = wantedCategory;
+        }
+      }
+    })();
+
+    // Initial load & Polling
+    loadStatus();
+    loadStatusAndChamber();
+    loadRaces().then(() => {
+      if (allRaces.length > 0) selectRace(allRaces[0].race_id);
+    });
+    setInterval(loadStatusAndChamber, 15000);
+    // The flip count moves with the calls, so it refreshes with the board rather than
+    // only at page load. A badge that freezes at load time is a stale number wearing a
+    // live-looking header.
+    setInterval(() => { loadStatus(); loadRaces(); loadFlips(); }, 15000);
+  </script>
+</body>
+</html>

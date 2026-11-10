@@ -1,0 +1,50 @@
+# Publish this repository's files as the Cold Counts site.
+#
+# The legacy Pages builder started failing on 2026-11-09 ("Page build failed") and stopped serving
+# the site entirely, so the public board deploys through Actions instead, where a failure shows a
+# real log. Every snapshot push lands here.
+name: deploy cold counts
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the snapshot is whole before publishing it
+        run: |
+          test -s index.html
+          test -s api/races.json
+          test -s api/status.json
+          python3 - <<'EOF'
+          import json
+          d = json.load(open("api/races.json"))
+          assert d["count"] > 400, f"refusing to deploy {d['count']} races"
+          print("races:", d["count"])
+          EOF
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
